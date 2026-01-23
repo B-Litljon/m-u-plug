@@ -32,13 +32,20 @@ export function CartMain({layout, cart: originalCart}) {
       <div className="px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-subtle)]">
         {amountLeft > 0 ? (
           <p className="text-sm text-[var(--color-primary)] mb-2">
-            Add <strong>${amountLeft.toFixed(2)}</strong> for Free Shipping
+            {/* If cart is empty, show the policy. If not, show the progress. */}
+            {totalAmount === 0 ? (
+              <span>Free Shipping on orders over <strong>${FREE_SHIPPING_THRESHOLD}</strong></span>
+            ) : (
+              <span>You're only <strong>${amountLeft.toFixed(2)}</strong> away from Free Shipping</span>
+            )}
           </p>
         ) : (
           <p className="text-sm font-bold text-[var(--color-success)] mb-2">
-            You've unlocked Free Shipping!
+            🎉 You've unlocked Free Shipping!
           </p>
         )}
+        
+        {/* Progress Bar */}
         <div className="w-full bg-[var(--color-border)] h-1.5 rounded-full overflow-hidden">
           <div 
             className="h-full bg-[var(--color-primary)] transition-all duration-500 ease-out" 
