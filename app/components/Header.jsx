@@ -9,27 +9,51 @@ import {useAside} from '~/components/Aside';
 export function Header({header, isLoggedIn, cart, publicStoreDomain}) {
   const {shop, menu} = header;
   return (
-    <header className="header">
-      <NavLink prefetch="intent" to="/" style={activeLinkStyle} end>
-        <strong>{shop.name}</strong>
-      </NavLink>
-      <HeaderMenu
-        menu={menu}
-        viewport="desktop"
-        primaryDomainUrl={header.shop.primaryDomain.url}
-        publicStoreDomain={publicStoreDomain}
-      />
-      <HeaderCtas isLoggedIn={isLoggedIn} cart={cart} />
+    <header className="sticky top-0 z-50 w-full transition-all duration-300 border-b border-[var(--color-border)] bg-white/90 backdrop-blur-md">
+      <div className="container mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
+        
+        {/* 1. MOBILE MENU TOGGLE (Visible on Mobile Only) */}
+        <div className="md:hidden flex-1">
+          <HeaderMenuMobileToggle />
+        </div>
+
+        {/* 2. LOGO (Centered on Mobile, Left on Desktop) */}
+        <NavLink 
+          prefetch="intent" 
+          to="/" 
+          end 
+          className="text-2xl font-serif font-bold tracking-tighter text-[var(--color-primary)] flex-1 text-center md:text-left md:flex-none"
+        >
+          {shop.name}
+        </NavLink>
+
+        {/* 3. DESKTOP NAVIGATION (Hidden on Mobile) */}
+        <div className="hidden md:flex flex-1 justify-center">
+          <HeaderMenu
+            menu={menu}
+            viewport="desktop"
+            primaryDomainUrl={header.shop.primaryDomain.url}
+            publicStoreDomain={publicStoreDomain}
+          />
+        </div>
+
+        {/* 4. UTILITIES (Search, Account, Cart) */}
+        <div className="flex-1 flex justify-end gap-2 md:gap-4">
+          <SearchToggle />
+          <AccountToggle isLoggedIn={isLoggedIn} />
+          <CartToggle cart={cart} />
+        </div>
+      </div>
     </header>
   );
 }
 
 /**
  * @param {{
- *   menu: HeaderProps['header']['menu'];
- *   primaryDomainUrl: HeaderProps['header']['shop']['primaryDomain']['url'];
- *   viewport: Viewport;
- *   publicStoreDomain: HeaderProps['publicStoreDomain'];
+ * menu: HeaderProps['header']['menu'];
+ * primaryDomainUrl: HeaderProps['header']['shop']['primaryDomain']['url'];
+ * viewport: Viewport;
+ * publicStoreDomain: HeaderProps['publicStoreDomain'];
  * }}
  */
 export function HeaderMenu({
@@ -38,40 +62,29 @@ export function HeaderMenu({
   viewport,
   publicStoreDomain,
 }) {
-  const className = `header-menu-${viewport}`;
   const {close} = useAside();
 
   return (
-    <nav className={className} role="navigation">
-      {viewport === 'mobile' && (
-        <NavLink
-          end
-          onClick={close}
-          prefetch="intent"
-          style={activeLinkStyle}
-          to="/"
-        >
-          Home
-        </NavLink>
-      )}
+    <nav className="flex gap-8" role="navigation">
       {(menu || FALLBACK_HEADER_MENU).items.map((item) => {
         if (!item.url) return null;
 
-        // if the url is internal, we strip the domain
         const url =
           item.url.includes('myshopify.com') ||
           item.url.includes(publicStoreDomain) ||
           item.url.includes(primaryDomainUrl)
             ? new URL(item.url).pathname
             : item.url;
+            
         return (
           <NavLink
-            className="header-menu-item"
+            className={({isActive}) => 
+              `text-sm font-medium uppercase tracking-wider transition-colors hover:text-[var(--color-accent)] ${isActive ? 'text-[var(--color-primary)] border-b-2 border-[var(--color-primary)]' : 'text-gray-500'}`
+            }
             end
             key={item.id}
             onClick={close}
             prefetch="intent"
-            style={activeLinkStyle}
             to={url}
           >
             {item.title}
@@ -82,34 +95,15 @@ export function HeaderMenu({
   );
 }
 
-/**
- * @param {Pick<HeaderProps, 'isLoggedIn' | 'cart'>}
- */
-function HeaderCtas({isLoggedIn, cart}) {
-  return (
-    <nav className="header-ctas" role="navigation">
-      <HeaderMenuMobileToggle />
-      <NavLink prefetch="intent" to="/account" style={activeLinkStyle}>
-        <Suspense fallback="Sign in">
-          <Await resolve={isLoggedIn} errorElement="Sign in">
-            {(isLoggedIn) => (isLoggedIn ? 'Account' : 'Sign in')}
-          </Await>
-        </Suspense>
-      </NavLink>
-      <SearchToggle />
-      <CartToggle cart={cart} />
-    </nav>
-  );
-}
-
 function HeaderMenuMobileToggle() {
   const {open} = useAside();
   return (
     <button
-      className="header-menu-mobile-toggle reset"
+      className="p-2 hover:bg-[var(--color-subtle)] rounded-full transition-colors"
       onClick={() => open('mobile')}
+      aria-label="Open menu"
     >
-      <h3>☰</h3>
+      <IconMenu />
     </button>
   );
 }
@@ -117,35 +111,35 @@ function HeaderMenuMobileToggle() {
 function SearchToggle() {
   const {open} = useAside();
   return (
-    <button className="reset" onClick={() => open('search')}>
-      Search
+    <button 
+      className="p-2 hover:bg-[var(--color-subtle)] rounded-full transition-colors" 
+      onClick={() => open('search')}
+      aria-label="Search"
+    >
+      <IconSearch />
     </button>
   );
 }
 
-/**
- * @param {{count: number | null}}
- */
-function CartBadge({count}) {
-  const {open} = useAside();
-  const {publish, shop, cart, prevCart} = useAnalytics();
-
+function AccountToggle({isLoggedIn}) {
   return (
-    <a
-      href="/cart"
-      onClick={(e) => {
-        e.preventDefault();
-        open('cart');
-        publish('cart_viewed', {
-          cart,
-          prevCart,
-          shop,
-          url: window.location.href || '',
-        });
-      }}
+    <NavLink 
+      prefetch="intent" 
+      to="/account" 
+      className="p-2 hover:bg-[var(--color-subtle)] rounded-full transition-colors hidden md:block"
+      aria-label="Account"
     >
-      Cart {count === null ? <span>&nbsp;</span> : count}
-    </a>
+      <Suspense fallback={<IconUser />}>
+        <Await resolve={isLoggedIn} errorElement={<IconUser />}>
+          {(isLoggedIn) => (
+             <div className="relative">
+               <IconUser />
+               {isLoggedIn && <span className="absolute top-0 right-0 w-2 h-2 bg-[var(--color-success)] rounded-full border border-white"></span>}
+             </div>
+          )}
+        </Await>
+      </Suspense>
+    </NavLink>
   );
 }
 
@@ -166,6 +160,61 @@ function CartBanner() {
   const originalCart = useAsyncValue();
   const cart = useOptimisticCart(originalCart);
   return <CartBadge count={cart?.totalQuantity ?? 0} />;
+}
+
+function CartBadge({count}) {
+  const {open} = useAside();
+  const {publish, shop, cart, prevCart} = useAnalytics();
+
+  return (
+    <a
+      href="/cart"
+      onClick={(e) => {
+        e.preventDefault();
+        open('cart');
+        publish('cart_viewed', {
+          cart,
+          prevCart,
+          shop,
+          url: window.location.href || '',
+        });
+      }}
+      className="relative p-2 hover:bg-[var(--color-subtle)] rounded-full transition-colors"
+    >
+      <IconBag />
+      {count > 0 && (
+        <span className="absolute top-0 right-0 inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-[var(--color-primary)] rounded-full ring-2 ring-white">
+          {count}
+        </span>
+      )}
+    </a>
+  );
+}
+
+// --- ICONS (Simple SVGs for Trust) ---
+
+function IconMenu() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+  );
+}
+
+function IconSearch() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+  );
+}
+
+function IconUser() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+  );
+}
+
+function IconBag() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+  );
 }
 
 const FALLBACK_HEADER_MENU = {
@@ -209,19 +258,6 @@ const FALLBACK_HEADER_MENU = {
     },
   ],
 };
-
-/**
- * @param {{
- *   isActive: boolean;
- *   isPending: boolean;
- * }}
- */
-function activeLinkStyle({isActive, isPending}) {
-  return {
-    fontWeight: isActive ? 'bold' : undefined,
-    color: isPending ? 'grey' : 'black',
-  };
-}
 
 /** @typedef {'desktop' | 'mobile'} Viewport */
 /**
