@@ -2,6 +2,7 @@ import {Await, useLoaderData, Link} from 'react-router';
 import {Suspense} from 'react';
 import {Image} from '@shopify/hydrogen';
 import {ProductItem} from '~/components/ProductItem';
+import heroImage from '~/assets/hero-memory.jpg';
 
 export const meta = () => {
   return [{title: 'Hydrogen | Home'}];
@@ -53,34 +54,45 @@ export default function Homepage() {
  */
 function HeroSection({collection}) {
   if (!collection) return null;
-  const image = collection?.image;
-  
-  return (
-    <div className="relative h-[80vh] w-full overflow-hidden bg-[var(--color-primary)]">
-      {/* Background Image with Dark Overlay for Text Readability */}
-      {image && (
-        <>
-          <Image 
-            data={image} 
-            sizes="100vw" 
-            className="absolute inset-0 h-full w-full object-cover opacity-60"
-            loading="eager"
-          />
-          <div className="absolute inset-0 bg-black/40" /> {/* Contrast Layer */}
-        </>
-      )}
 
-      {/* Content Center */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
-        <h1 className="text-5xl md:text-7xl font-bold text-white tracking-tight mb-6 drop-shadow-lg">
-          {collection.title}
-        </h1>
-        <Link
-          to={`/collections/${collection.handle}`}
-          className="px-8 py-4 bg-white text-black font-bold text-lg rounded-[var(--radius-sm)] hover:bg-gray-100 transition-colors shadow-xl"
-        >
-          Shop Collection
-        </Link>
+  return (
+    <div className="relative h-[85vh] w-full overflow-hidden bg-black">
+      {/* The Asset 
+        Using standard <img> because this is a static local asset, not a Storefront API object.
+      */}
+      <img
+        src={heroImage}
+        alt="A glowing scene of childhood gaming memories held in the palm of a hand"
+        className="absolute inset-0 h-full w-full object-cover object-center opacity-90"
+      />
+      
+      {/* The Overlay 
+        A subtle gradient from the top-left to ensure text readability 
+        without obscuring the hand/child in the center/right.
+      */}
+      <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-transparent to-transparent" />
+
+      {/* The Content 
+        Positioned Top-Left to balance against the Hand (Bottom/Right).
+      */}
+      <div className="absolute inset-0 flex flex-col items-start justify-center px-8 md:px-16 lg:px-24 pb-20">
+        <div className="max-w-xl space-y-8">
+          <h1 className="text-5xl md:text-7xl font-bold text-white tracking-tight leading-[1.1] drop-shadow-2xl">
+            Your childhood memories, <br />
+            <span className="text-[var(--color-subtle)] bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+              in the palm of your hand.
+            </span>
+          </h1>
+          
+          <div className="flex gap-4">
+            <Link
+              to={`/collections/${collection.handle}`}
+              className="px-10 py-4 bg-white text-black font-bold text-lg rounded-[var(--radius-sm)] hover:bg-gray-200 transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+            >
+              Shop Handhelds
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );
