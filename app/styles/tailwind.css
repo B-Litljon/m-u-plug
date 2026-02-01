@@ -5,20 +5,24 @@
    * Trust is built on consistency. We define semantic names (Primary, Contrast)
    * rather than just "Blue" or "Red" to enforce strict usage.
    */
-  --color-primary: #1a1a1a;    /* Off-black for authority */
-  --color-contrast: #ffffff;   /* Pure white for clarity */
-  --color-accent: #2c5282;     /* Trustworthy Blue (Navy) */
-  --color-subtle: #f4f4f5;     /* Light gray for backgrounds */
-  --color-border: #e4e4e7;     /* Crisp borders, no muddy grays */
-  
-  --color-error: #ef4444;      /* Clear error states */
-  --color-success: #22c55e;    /* Clear success states */
+  --color-primary: #1a1a1a; /* Off-black for authority */
+  --color-contrast: #ffffff; /* Pure white for clarity */
+  --color-accent: #2c5282; /* Trustworthy Blue (Navy) */
+  --color-subtle: #f4f4f5; /* Light gray for backgrounds */
+  --color-border: #e4e4e7; /* Crisp borders, no muddy grays */
+
+  --color-error: #ef4444; /* Clear error states */
+  --color-success: #22c55e; /* Clear success states */
 
   /* * THE FIT: Typography 
-   * A tight, professional font stack. 
+   * A tight, professional font stack.
+   * Inter for body, Space Grotesk for headers = "Retro-Tech" aesthetic.
    */
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-serif: "Playfair Display", serif; /* Use for "Editorial" moments */
+  --font-sans:
+    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display:
+    'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif; /* Headers/Display */
+  --font-serif: 'Playfair Display', serif; /* Use for "Editorial" moments */
 
   /* * THE DETAILS: Border Radius & Spacing
    * Sharp corners = Technical/Precise. Rounded = Friendly.
@@ -42,18 +46,32 @@
   }
 
   /* Typography Hierarchy - Visualizing Authority */
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
     font-weight: 600;
     letter-spacing: -0.02em; /* Tight tracking feels more premium */
     line-height: 1.1;
   }
 
-  h1 { font-size: 2.5rem; }
-  h2 { font-size: 2rem; }
-  h3 { font-size: 1.75rem; }
-  
+  h1 {
+    font-size: 2.5rem;
+  }
+  h2 {
+    font-size: 2rem;
+  }
+  h3 {
+    font-size: 1.75rem;
+  }
+
   /* Inputs - The "Handshake" of the UI */
-  input, select, textarea {
+  input,
+  select,
+  textarea {
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     padding: 0.75rem 1rem;

@@ -65,7 +65,7 @@ function HeroSection({collection}) {
         alt="A glowing scene of childhood gaming memories held in the palm of a hand"
         className="absolute inset-0 h-full w-full object-cover object-center opacity-90"
       />
-      
+
       {/* The Overlay 
         A subtle gradient from the top-left to ensure text readability 
         without obscuring the hand/child in the center/right.
@@ -83,7 +83,7 @@ function HeroSection({collection}) {
               in the palm of your hand.
             </span>
           </h1>
-          
+
           <div className="flex gap-4">
             <Link
               to={`/collections/${collection.handle}`}
@@ -100,22 +100,86 @@ function HeroSection({collection}) {
 
 /**
  * 2. THE TRUST BAR: The "Firm Handshake" of the Homepage
+ * Niche-specific selling points that speak to the retro emulation community.
  */
 function TrustBar() {
   const items = [
-    { title: 'Secure Checkout', text: 'Encrypted payments' },
-    { title: 'Fast Shipping', text: 'Tracked delivery' },
-    { title: 'Quality Guarantee', text: 'Verified authenticity' },
+    {
+      title: 'Pre-Loaded & Ready',
+      text: 'Curated SD cards, instant nostalgia',
+      icon: (
+        <svg
+          className="w-8 h-8 mx-auto mb-3 text-[var(--color-accent)]"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+          />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+      ),
+    },
+    {
+      title: 'Community Verified',
+      text: 'Trusted by r/SBCGaming',
+      icon: (
+        <svg
+          className="w-8 h-8 mx-auto mb-3 text-[var(--color-accent)]"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+          />
+        </svg>
+      ),
+    },
+    {
+      title: 'Play in Minutes',
+      text: 'No setup, no stress',
+      icon: (
+        <svg
+          className="w-8 h-8 mx-auto mb-3 text-[var(--color-accent)]"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+      ),
+    },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-8 py-12 border-b border-[var(--color-border)] bg-[var(--color-subtle)] text-center">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-8 py-14 border-b border-[var(--color-border)] bg-[var(--color-subtle)]">
       {items.map((item) => (
-        <div key={item.title} className="space-y-1">
-          <h3 className="text-lg font-bold text-[var(--color-primary)] uppercase tracking-wide">
+        <div key={item.title} className="text-center group">
+          <div className="transition-transform duration-300 group-hover:scale-110">
+            {item.icon}
+          </div>
+          <h3 className="text-base font-semibold text-[var(--color-primary)] uppercase tracking-wider mb-1">
             {item.title}
           </h3>
-          <p className="text-gray-500 text-sm">{item.text}</p>
+          <p className="text-[var(--color-primary)]/60 text-sm">{item.text}</p>
         </div>
       ))}
     </div>
@@ -129,13 +193,24 @@ function RecommendedProducts({products}) {
   return (
     <div className="recommended-products py-16 px-4 md:px-8 container mx-auto">
       <div className="flex justify-between items-end mb-8 border-b border-[var(--color-border)] pb-4">
-        <h2 className="text-2xl font-bold text-[var(--color-primary)]">New Arrivals</h2>
-        <Link to="/collections/all" className="text-sm font-medium underline underline-offset-4 hover:text-[var(--color-accent)]">
+        <h2 className="text-2xl font-bold text-[var(--color-primary)]">
+          New Arrivals
+        </h2>
+        <Link
+          to="/collections/all"
+          className="text-sm font-medium underline underline-offset-4 hover:text-[var(--color-accent)]"
+        >
           View All &rarr;
         </Link>
       </div>
 
-      <Suspense fallback={<div className="h-96 flex items-center justify-center">Loading...</div>}>
+      <Suspense
+        fallback={
+          <div className="h-96 flex items-center justify-center">
+            Loading...
+          </div>
+        }
+      >
         <Await resolve={products}>
           {(response) => (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-10">
@@ -202,6 +277,8 @@ const RECOMMENDED_PRODUCTS_QUERY = `#graphql
       }
       variants(first: 1) {
         nodes {
+          id
+          availableForSale
           selectedOptions {
             name
             value
