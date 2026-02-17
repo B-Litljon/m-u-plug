@@ -405,62 +405,41 @@ button.reset:hover:not(:has(> *)) {
 /*
 * --------------------------------------------------
 * routes/products.$handle.tsx
+* Note: Product page is now styled with Tailwind in the route file
 * --------------------------------------------------
 */
-.product {
-  display: grid;
-  @media (min-width: 45em) {
-    grid-template-columns: 1fr 1fr;
-    grid-gap: 4rem;
-  }
+
+/* Prose styling for product descriptions */
+.prose {
+  line-height: 1.75;
 }
 
-.product h1 {
-  margin-top: 0;
+.prose p {
+  margin-bottom: 1em;
 }
 
-.product-image img {
-  height: auto;
-  width: 100%;
+.prose ul,
+.prose ol {
+  padding-left: 1.5em;
+  margin-bottom: 1em;
 }
 
-.product-main {
-  align-self: start;
-  position: sticky;
-  top: 6rem;
+.prose li {
+  margin-bottom: 0.5em;
 }
 
-.product-price-on-sale {
-  display: flex;
-  grid-gap: 0.5rem;
+.prose strong {
+  font-weight: 600;
 }
 
-.product-price-on-sale s {
-  opacity: 0.5;
+/* Hide scrollbar for thumbnail strip */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-.product-options-grid {
-  display: flex;
-  flex-wrap: wrap;
-  grid-gap: 0.75rem;
-}
-
-.product-options-item,
-.product-options-item:disabled {
-  padding: 0.25rem 0.5rem;
-  background-color: transparent;
-  font-size: 1rem;
-  font-family: inherit;
-}
-
-.product-option-label-swatch {
-  width: 1.25rem;
-  height: 1.25rem;
-  margin: 0.25rem 0;
-}
-
-.product-option-label-swatch img {
-  width: 100%;
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 /*
