@@ -4,64 +4,40 @@ import {useAside} from '~/components/Aside';
 import {CartLineItem} from '~/components/CartLineItem';
 import {CartSummary} from './CartSummary';
 
-// * CONFIG: Set your free shipping threshold here
-const FREE_SHIPPING_THRESHOLD = 100;
-
 /**
- * The main cart component that displays the cart items and summary.
- * It is used by both the /cart route and the cart aside dialog.
+ * CartMain - Neo-Brutalist Cart Container
+ * Main cart component for drawer and page views
+ * 
  * @param {CartMainProps}
  */
 export function CartMain({layout, cart: originalCart}) {
   const cart = useOptimisticCart(originalCart);
-  
-  // Calculate Free Shipping Progress
-  const totalAmount = parseFloat(cart?.cost?.subtotalAmount?.amount || '0');
-  const amountLeft = FREE_SHIPPING_THRESHOLD - totalAmount;
-  const progress = Math.min((totalAmount / FREE_SHIPPING_THRESHOLD) * 100, 100);
-
   const linesCount = Boolean(cart?.lines?.nodes?.length || 0);
-  const withDiscount =
-    cart &&
-    Boolean(cart?.discountCodes?.filter((code) => code.applicable)?.length);
-  const className = `cart-main ${withDiscount ? 'with-discount' : ''} h-full flex flex-col`;
+
+  const className = `cart-main h-full flex flex-col bg-[var(--color-bg-primary)]`;
 
   return (
     <div className={className}>
-      {/* FREE SHIPPING BAR */}
-      <div className="px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-subtle)]">
-        {amountLeft > 0 ? (
-          <p className="text-sm text-[var(--color-primary)] mb-2">
-            {/* If cart is empty, show the policy. If not, show the progress. */}
-            {totalAmount === 0 ? (
-              <span>Free Shipping on orders over <strong>${FREE_SHIPPING_THRESHOLD}</strong></span>
-            ) : (
-              <span>You're only <strong>${amountLeft.toFixed(2)}</strong> away from Free Shipping</span>
-            )}
-          </p>
-        ) : (
-          <p className="text-sm font-bold text-[var(--color-success)] mb-2">
-            🎉 You've unlocked Free Shipping!
-          </p>
-        )}
-        
-        {/* Progress Bar */}
-        <div className="w-full bg-[var(--color-border)] h-1.5 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-[var(--color-primary)] transition-all duration-500 ease-out" 
-            style={{ width: `${progress}%` }} 
-          />
-        </div>
+      {/* Cart Header */}
+      <div className="border-b-4 border-[var(--color-fg-primary)] px-6 py-4 bg-[var(--color-bg-secondary)]">
+        <h2 className="font-[var(--font-display)] text-3xl md:text-4xl font-bold uppercase tracking-tighter text-[var(--color-fg-primary)]">
+          YOUR HAUL
+        </h2>
+        <p className="font-[var(--font-mono)] text-xs uppercase tracking-widest text-[var(--color-fg-muted)] mt-1">
+          {cart?.lines?.nodes?.length || 0} ITEMS
+        </p>
       </div>
 
       <CartEmpty hidden={linesCount} layout={layout} />
 
       {/* CART ITEMS AREA */}
-      <div className="cart-details flex-1 overflow-y-auto px-6 py-4">
-        <div aria-labelledby="cart-lines">
-          <ul className="grid gap-6">
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-4" aria-labelledby="cart-lines">
+          <ul className="space-y-[1px] bg-[var(--color-border-primary)] border-2 border-[var(--color-border-primary)]">
             {(cart?.lines?.nodes ?? []).map((line) => (
-              <CartLineItem key={line.id} line={line} layout={layout} />
+              <li key={line.id} className="bg-[var(--color-bg-secondary)]">
+                <CartLineItem line={line} layout={layout} />
+              </li>
             ))}
           </ul>
         </div>
@@ -69,7 +45,7 @@ export function CartMain({layout, cart: originalCart}) {
       
       {/* SUMMARY FOOTER */}
       {linesCount && (
-        <div className="border-t border-[var(--color-border)] p-6 bg-[var(--color-contrast)]">
+        <div className="border-t-4 border-[var(--color-fg-primary)] bg-[var(--color-bg-secondary)]">
           <CartSummary cart={cart} layout={layout} />
         </div>
       )}
@@ -78,29 +54,52 @@ export function CartMain({layout, cart: originalCart}) {
 }
 
 /**
- * @param {{
- * hidden: boolean;
- * layout?: CartMainProps['layout'];
- * }}
+ * CartEmpty - Neo-Brutalist Empty State
+ * 
+ * @param {{hidden: boolean; layout?: CartMainProps['layout']}}
  */
 function CartEmpty({hidden = false}) {
   const {close} = useAside();
+  
   return (
-    <div hidden={hidden} className="flex flex-col items-center justify-center h-full text-center p-8 space-y-6">
-      <div className="w-16 h-16 rounded-full bg-[var(--color-subtle)] flex items-center justify-center text-2xl">
-        🛒
+    <div 
+      hidden={hidden} 
+      className="flex flex-col items-center justify-center h-full text-center p-8"
+    >
+      <div className="border-4 border-[var(--color-fg-primary)] bg-[var(--color-bg-secondary)] p-8 mb-6">
+        <div className="w-16 h-16 border-2 border-[var(--color-fg-primary)] flex items-center justify-center text-2xl bg-[var(--color-bg-tertiary)]">
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            width="24" 
+            height="24" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            strokeLinecap="square"
+            className="text-[var(--color-fg-primary)]"
+          >
+            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/>
+            <path d="M3 6h18"/>
+            <path d="M16 10a4 4 0 0 1-8 0"/>
+          </svg>
+        </div>
       </div>
-      <div>
-        <h3 className="text-lg font-medium">Your bag is empty</h3>
-        <p className="text-sm text-gray-500 mt-1">Looks like you haven't added anything yet.</p>
-      </div>
+      
+      <h3 className="font-[var(--font-display)] text-2xl font-bold uppercase tracking-tight text-[var(--color-fg-primary)] mb-2">
+        CART EMPTY
+      </h3>
+      <p className="font-[var(--font-mono)] text-sm uppercase tracking-widest text-[var(--color-fg-muted)] mb-6">
+        // GO LOOT
+      </p>
+      
       <Link 
-        to="/collections" 
+        to="/collections/all" 
         onClick={close} 
         prefetch="viewport"
-        className="w-full py-3 px-6 bg-[var(--color-primary)] text-[var(--color-contrast)] font-medium rounded-[var(--radius-sm)] hover:opacity-90 transition-opacity"
+        className="inline-block bg-[var(--color-fg-primary)] text-[var(--color-bg-primary)] border-2 border-[var(--color-fg-primary)] px-8 py-3 font-[var(--font-mono)] text-xs font-bold uppercase tracking-widest hover:bg-[var(--color-accent-lime)] hover:border-[var(--color-accent-lime)] hover:text-[var(--color-bg-primary)] transition-colors"
       >
-        Continue Shopping
+        START SHOPPING
       </Link>
     </div>
   );

@@ -1,90 +1,85 @@
-import {CartForm, Image} from '@shopify/hydrogen';
+import {CartForm, Image, Money} from '@shopify/hydrogen';
 import {useVariantUrl} from '~/lib/variants';
 import {Link} from 'react-router';
-import {ProductPrice} from './ProductPrice';
 import {useAside} from '~/components/Aside';
 
 /**
- * A single line item in the cart.
- * @param {{
- * layout: CartLayout;
- * line: CartLine;
- * }}
+ * CartLineItem - Neo-Brutalist Cart Line Item
+ * Flex row layout with square hard-bordered quantity controls
+ * 
+ * @param {{layout: CartLayout; line: CartLine}}
  */
 export function CartLineItem({layout, line}) {
-  const {id, merchandise} = line;
+  const {id, merchandise, quantity, cost} = line;
   const {product, title, image, selectedOptions} = merchandise;
   const lineItemUrl = useVariantUrl(product.handle, selectedOptions);
   const {close} = useAside();
 
-  // If the item is being removed/updated optimistically, fade it out
   const isOptimistic = line.isOptimistic;
 
   return (
-    <li 
-      key={id} 
-      className={`flex gap-4 py-4 border-b border-[var(--color-subtle)] last:border-none ${isOptimistic ? 'opacity-50 grayscale' : 'opacity-100'} transition-all duration-200`}
+    <div 
+      className={`flex gap-4 p-4 ${isOptimistic ? 'opacity-50' : 'opacity-100'} transition-opacity duration-150`}
     >
-      {/* 1. PRODUCT IMAGE */}
+      {/* PRODUCT IMAGE - Square with hard border */}
       <div className="flex-shrink-0">
         {image && (
           <Link
             to={lineItemUrl}
             onClick={() => layout === 'aside' && close()}
+            className="block border-2 border-[var(--color-fg-primary)]"
           >
             <Image
               alt={title}
               aspectRatio="1/1"
               data={image}
-              height={100}
+              height={80}
               loading="lazy"
-              width={100}
-              className="h-24 w-24 rounded-[var(--radius-sm)] object-cover bg-[var(--color-subtle)] border border-[var(--color-border)]"
+              width={80}
+              className="h-20 w-20 object-cover bg-[var(--color-bg-tertiary)]"
             />
           </Link>
         )}
       </div>
 
-      {/* 2. DETAILS COLUMN */}
-      <div className="flex flex-1 flex-col justify-between">
-        <div className="grid gap-1">
-          <div className="flex justify-between items-start">
-            <Link
-              to={lineItemUrl}
-              onClick={() => layout === 'aside' && close()}
-              className="font-bold text-[var(--color-primary)] hover:underline decoration-1 underline-offset-2 line-clamp-2"
-            >
-              {product.title}
-            </Link>
-            {/* Price aligned to top right */}
-            <div className="text-sm font-medium">
-               <ProductPrice price={line?.cost?.totalAmount} />
-            </div>
-          </div>
-
-          {/* Variants (Size/Color) */}
-          <ul className="text-xs text-gray-500 space-y-0.5">
-            {selectedOptions.map((option) => (
-              <li key={option.name}>
-                {option.name}: {option.value}
-              </li>
-            ))}
-          </ul>
+      {/* DETAILS COLUMN */}
+      <div className="flex flex-1 flex-col justify-between min-w-0">
+        <div className="flex justify-between items-start gap-2">
+          <Link
+            to={lineItemUrl}
+            onClick={() => layout === 'aside' && close()}
+            className="font-[var(--font-display)] text-sm font-bold uppercase tracking-tight text-[var(--color-fg-primary)] hover:text-[var(--color-accent-cyan)] transition-colors line-clamp-2"
+          >
+            {product.title}
+          </Link>
+          
+          {/* Price - Mono font */}
+          <span className="font-[var(--font-mono)] text-sm font-bold text-[var(--color-fg-primary)] whitespace-nowrap">
+            <Money data={cost?.totalAmount} />
+          </span>
         </div>
 
-        {/* 3. FOOTER: QUANTITY & REMOVE */}
-        <div className="flex items-center justify-between mt-2">
+        {/* Variant Options - Mono font */}
+        {selectedOptions.length > 0 && (
+          <div className="mt-1">
+            <p className="font-[var(--font-mono)] text-[10px] uppercase tracking-wider text-[var(--color-fg-muted)]">
+              {selectedOptions.map(opt => `${opt.value}`).join(' / ')}
+            </p>
+          </div>
+        )}
+
+        {/* FOOTER: QUANTITY & REMOVE */}
+        <div className="flex items-center justify-between mt-3">
           <CartLineQuantity line={line} />
-          
           <CartLineRemoveButton lineIds={[id]} disabled={!!isOptimistic} />
         </div>
       </div>
-    </li>
+    </div>
   );
 }
 
 /**
- * Custom "Pill" styled quantity selector
+ * CartLineQuantity - Hard-bordered square quantity controls
  * @param {{line: CartLine}}
  */
 function CartLineQuantity({line}) {
@@ -94,20 +89,20 @@ function CartLineQuantity({line}) {
   const nextQuantity = Number((quantity + 1).toFixed(0));
 
   return (
-    <div className="flex items-center border border-[var(--color-border)] rounded-[var(--radius-sm)] bg-[var(--color-contrast)] h-8">
+    <div className="flex items-center border-2 border-[var(--color-fg-primary)] bg-[var(--color-bg-primary)]">
       <CartLineUpdateButton lines={[{id: lineId, quantity: prevQuantity}]}>
         <button
           aria-label="Decrease quantity"
           disabled={quantity <= 1 || !!isOptimistic}
           name="decrease-quantity"
           value={prevQuantity}
-          className="w-8 h-full flex items-center justify-center hover:bg-[var(--color-subtle)] disabled:opacity-30 text-[var(--color-primary)] transition-colors"
+          className="w-8 h-8 flex items-center justify-center font-[var(--font-mono)] text-sm font-bold text-[var(--color-fg-primary)] bg-[var(--color-bg-secondary)] hover:bg-[var(--color-accent-magenta)] hover:text-[var(--color-fg-primary)] disabled:opacity-30 disabled:hover:bg-[var(--color-bg-secondary)] transition-colors border-r-2 border-[var(--color-fg-primary)]"
         >
-          <span>&#8722;</span>
+          &#8722;
         </button>
       </CartLineUpdateButton>
       
-      <div className="px-2 text-sm font-medium text-[var(--color-primary)] min-w-[1.5rem] text-center">
+      <div className="w-10 h-8 flex items-center justify-center font-[var(--font-mono)] text-sm font-bold text-[var(--color-fg-primary)] bg-[var(--color-bg-primary)]">
         {quantity}
       </div>
       
@@ -117,15 +112,18 @@ function CartLineQuantity({line}) {
           name="increase-quantity"
           value={nextQuantity}
           disabled={!!isOptimistic}
-          className="w-8 h-full flex items-center justify-center hover:bg-[var(--color-subtle)] disabled:opacity-30 text-[var(--color-primary)] transition-colors"
+          className="w-8 h-8 flex items-center justify-center font-[var(--font-mono)] text-sm font-bold text-[var(--color-fg-primary)] bg-[var(--color-bg-secondary)] hover:bg-[var(--color-accent-lime)] hover:text-[var(--color-bg-primary)] disabled:opacity-30 disabled:hover:bg-[var(--color-bg-secondary)] transition-colors border-l-2 border-[var(--color-fg-primary)]"
         >
-          <span>&#43;</span>
+          &#43;
         </button>
       </CartLineUpdateButton>
     </div>
   );
 }
 
+/**
+ * CartLineRemoveButton - Remove item from cart
+ */
 function CartLineRemoveButton({lineIds, disabled}) {
   return (
     <CartForm
@@ -137,9 +135,9 @@ function CartLineRemoveButton({lineIds, disabled}) {
       <button 
         disabled={disabled} 
         type="submit"
-        className="text-xs font-medium text-gray-500 hover:text-[var(--color-error)] underline underline-offset-2 transition-colors disabled:opacity-50"
+        className="font-[var(--font-mono)] text-[10px] uppercase tracking-widest text-[var(--color-fg-muted)] hover:text-[var(--color-error)] underline underline-offset-2 transition-colors disabled:opacity-50"
       >
-        Remove
+        REMOVE
       </button>
     </CartForm>
   );
@@ -164,7 +162,7 @@ function getUpdateKey(lineIds) {
 }
 
 /** @typedef {OptimisticCartLine<CartApiQueryFragment>} CartLine */
-/** @typedef {import('@shopify/hydrogen/storefront-api-types').CartLineUpdateInput} CartLineUpdateInput */
+/** @typedef {import('@shopify/hydrogen/storefront-api-types').CartLineUpdateInput} CartLineUpdateInput} */
 /** @typedef {import('~/components/CartMain').CartLayout} CartLayout */
-/** @typedef {import('@shopify/hydrogen').OptimisticCartLine} OptimisticCartLine */
-/** @typedef {import('storefrontapi.generated').CartApiQueryFragment} CartApiQueryFragment */
+/** @typedef {import('@shopify/hydrogen').OptimisticCartLine} OptimisticCartLine} */
+/** @typedef {import('storefrontapi.generated').CartApiQueryFragment} CartApiQueryFragment} */

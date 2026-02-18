@@ -1,31 +1,55 @@
 import {CartForm, Money} from '@shopify/hydrogen';
-import {useEffect, useRef} from 'react';
-import {useFetcher} from 'react-router';
 
 /**
+ * CartSummary - Neo-Brutalist Cart Summary
+ * Totals display with massive lime checkout button
+ * 
  * @param {CartSummaryProps}
  */
 export function CartSummary({cart, layout}) {
-  const className =
-    layout === 'page' ? 'cart-summary-page' : 'cart-summary-aside';
+  const isAside = layout === 'aside';
 
   return (
-    <div aria-labelledby="cart-summary" className={`${className} space-y-4`}>
-      <dl className="cart-subtotal flex justify-between items-center text-lg font-medium">
-        <dt>Subtotal</dt>
-        <dd>
+    <div className="p-6 space-y-4" aria-labelledby="cart-summary">
+      {/* Subtotal Row */}
+      <div className="flex justify-between items-center">
+        <span className="font-[var(--font-mono)] text-xs uppercase tracking-widest text-[var(--color-fg-muted)]">
+          SUBTOTAL
+        </span>
+        <span className="font-[var(--font-mono)] text-xl font-bold text-[var(--color-fg-primary)]">
           {cart?.cost?.subtotalAmount?.amount ? (
             <Money data={cart?.cost?.subtotalAmount} />
           ) : (
             '-'
           )}
-        </dd>
-      </dl>
-      
+        </span>
+      </div>
+
+      {/* Discount Codes */}
       <CartDiscounts discountCodes={cart?.discountCodes} />
+      
+      {/* Divider */}
+      <div className="border-t-2 border-[var(--color-border-primary)]" />
+      
+      {/* Total Row */}
+      <div className="flex justify-between items-center">
+        <span className="font-[var(--font-display)] text-lg font-bold uppercase tracking-tight text-[var(--color-fg-primary)]">
+          TOTAL
+        </span>
+        <span className="font-[var(--font-mono)] text-2xl font-bold text-[var(--color-accent-lime)]">
+          {cart?.cost?.totalAmount?.amount ? (
+            <Money data={cart?.cost?.totalAmount} />
+          ) : (
+            '-'
+          )}
+        </span>
+      </div>
+      
+      {/* Checkout Button - Massive lime with hard shadow */}
       <CartCheckoutActions checkoutUrl={cart?.checkoutUrl} />
       
-      <p className="text-xs text-center text-gray-500 mt-4">
+      {/* Tax/Shipping Note */}
+      <p className="font-[var(--font-mono)] text-[10px] uppercase tracking-wider text-[var(--color-fg-muted)] text-center">
         Shipping & taxes calculated at checkout
       </p>
     </div>
@@ -33,29 +57,30 @@ export function CartSummary({cart, layout}) {
 }
 
 /**
+ * CartCheckoutActions - Massive brutalist checkout button
+ * 
  * @param {{checkoutUrl?: string}}
  */
 function CartCheckoutActions({checkoutUrl}) {
   if (!checkoutUrl) return null;
 
   return (
-    <div className="mt-4">
+    <div className="pt-2">
       <a 
         href={checkoutUrl} 
         target="_self"
-        className="block w-full py-4 bg-[var(--color-primary)] text-[var(--color-contrast)] text-center font-bold text-lg uppercase tracking-wide rounded-[var(--radius-sm)] hover:opacity-90 transition-opacity"
+        className="block w-full bg-[var(--color-accent-lime)] text-[var(--color-bg-primary)] border-2 border-[var(--color-accent-lime)] py-4 px-6 font-[var(--font-display)] text-lg font-bold uppercase tracking-widest text-center shadow-[4px_4px_0px_0px_var(--color-fg-primary)] hover:shadow-[2px_2px_0px_0px_var(--color-fg-primary)] hover:translate-x-[2px] hover:translate-y-[2px] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all"
       >
-        Checkout &rarr;
+        CHECKOUT
       </a>
     </div>
   );
 }
 
-// ... (Keep the rest of CartDiscounts and GiftCard logic exactly as is, they are fine)
 /**
- * @param {{
- * discountCodes?: CartApiQueryFragment['discountCodes'];
- * }}
+ * CartDiscounts - Applied discount codes
+ * 
+ * @param {{discountCodes?: CartApiQueryFragment['discountCodes']}}
  */
 function CartDiscounts({discountCodes}) {
   const codes =
@@ -63,37 +88,42 @@ function CartDiscounts({discountCodes}) {
       ?.filter((discount) => discount.applicable)
       ?.map(({code}) => code) || [];
 
+  if (codes.length === 0) return null;
+
   return (
-    <div className="text-sm">
-      {/* Have existing discount, display it with a remove option */}
-      <dl hidden={!codes.length}>
-        <div className="flex items-center justify-between py-2">
-          <dt className="text-gray-500">Discount</dt>
-          <UpdateDiscountForm>
-            <div className="cart-discount flex items-center space-x-2">
-              <code className="bg-[var(--color-subtle)] px-2 py-1 rounded">{codes?.join(', ')}</code>
-              <button className="text-[var(--color-error)] text-xs underline">Remove</button>
-            </div>
-          </UpdateDiscountForm>
+    <div className="flex justify-between items-center">
+      <span className="font-[var(--font-mono)] text-xs uppercase tracking-widest text-[var(--color-accent-cyan)]">
+        DISCOUNT
+      </span>
+      <UpdateDiscountForm>
+        <div className="flex items-center gap-2">
+          <code className="font-[var(--font-mono)] text-xs uppercase bg-[var(--color-bg-tertiary)] border border-[var(--color-border-accent)] px-2 py-1 text-[var(--color-fg-primary)]">
+            {codes?.join(', ')}
+          </code>
+          <button 
+            type="submit"
+            className="font-[var(--font-mono)] text-[10px] uppercase tracking-wider text-[var(--color-fg-muted)] hover:text-[var(--color-error)] underline underline-offset-2 transition-colors"
+          >
+            Remove
+          </button>
         </div>
-      </dl>
+      </UpdateDiscountForm>
     </div>
   );
 }
 
 /**
- * @param {{
- * discountCodes?: string[];
- * children: React.ReactNode;
- * }}
+ * UpdateDiscountForm - Remove discount codes
+ * 
+ * @param {{children: React.ReactNode}}
  */
-function UpdateDiscountForm({discountCodes, children}) {
+function UpdateDiscountForm({children}) {
   return (
     <CartForm
       route="/cart"
       action={CartForm.ACTIONS.DiscountCodesUpdate}
       inputs={{
-        discountCodes: discountCodes || [],
+        discountCodes: [],
       }}
     >
       {children}
@@ -111,4 +141,3 @@ function UpdateDiscountForm({discountCodes, children}) {
 /** @typedef {import('storefrontapi.generated').CartApiQueryFragment} CartApiQueryFragment */
 /** @typedef {import('~/components/CartMain').CartLayout} CartLayout */
 /** @typedef {import('@shopify/hydrogen').OptimisticCart} OptimisticCart */
-/** @typedef {import('react-router').FetcherWithComponents} FetcherWithComponents */
