@@ -1,51 +1,117 @@
-import {redirect, useLoaderData} from 'react-router';
+import {redirect, useLoaderData, Link} from 'react-router';
 import {getPaginationVariables, Analytics} from '@shopify/hydrogen';
-import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
-import {redirectIfHandleIsLocalized} from '~/lib/redirect';
-import {ProductItem} from '~/components/ProductItem';
+import {Pagination} from '~/components/Pagination';
+import {ProductCard, ProductCardSkeleton} from '~/components/ProductCard';
 
 /**
- * @type {Route.MetaFunction}
+ * Helper: Extract tech specs from product tags
  */
-export const meta = ({data}) => {
-  return [{title: `Hydrogen | ${data?.collection.title ?? ''} Collection`}];
-};
-
-/**
- * @param {Route.LoaderArgs} args
- */
-export async function loader(args) {
-  // Start fetching non-critical data without blocking time to first byte
-  const deferredData = loadDeferredData(args);
-
-  // Await the critical data required to render initial state of the page
-  const criticalData = await loadCriticalData(args);
-
-  return {...deferredData, ...criticalData};
+function getSpecsFromTags(tags) {
+  if (!tags || tags.length === 0) return null;
+  
+  const specs = {};
+  const specKeywords = ['screen', 'cpu', 'ram', 'storage', 'battery', 'display'];
+  
+  tags.forEach(tag => {
+    if (tag.includes(':')) {
+      const [key, value] = tag.split(':').map(s => s.trim());
+      if (key && value) {
+        specs[key.toUpperCase()] = value;
+      }
+    } else {
+      const lowerTag = tag.toLowerCase();
+      specKeywords.forEach(keyword => {
+        if (lowerTag.includes(keyword)) {
+          const key = keyword.toUpperCase();
+          const value = tag.replace(new RegExp(keyword, 'i'), '').trim();
+          if (value) {
+            specs[key] = value;
+          }
+        }
+      });
+    }
+  });
+  
+  return Object.keys(specs).length > 0 ? specs : null;
 }
 
 /**
- * Load data necessary for rendering content above the fold. This is the critical data
- * needed to render the page. If it's unavailable, the whole page should 400 or 500 error.
- * @param {Route.LoaderArgs}
+ * Helper: Extract badge from tags
  */
-async function loadCriticalData({context, params, request}) {
+function getBadgeFromTags(tags) {
+  if (!tags || tags.length === 0) return null;
+  
+  const badgeMap = {
+    'new': 'NEW',
+    'restock': 'RESTOCK',
+    'sale': 'SALE',
+    'sold out': 'SOLD OUT',
+    'limited': 'LIMITED',
+  };
+  
+  const tag = tags.find(t => badgeMap[t.toLowerCase()]);
+  return tag ? badgeMap[tag.toLowerCase()] : null;
+}
+
+/**
+ * SEO Meta Function - Collection Page
+ * Format: "Collection Name // ARCHIVE | M-U-PLUG"
+ */
+export const meta = ({data}) => {
+  const collection = data?.collection;
+  
+  if (!collection) {
+    return [
+      {title: 'Collection Not Found | M-U-PLUG'},
+      {name: 'description', content: 'The requested collection could not be found.'},
+    ];
+  }
+
+  const title = collection.title;
+  const description = collection.description?.substring(0, 160) || 
+    `Browse ${title} at M-U-PLUG. Premium retro gaming hardware and accessories.`;
+  const image = collection.image?.url;
+  
+  const metaTitle = `${title} // ARCHIVE | M-U-PLUG`;
+
+  return [
+    {title: metaTitle},
+    {name: 'description', content: description},
+    {property: 'og:title', content: title},
+    {property: 'og:description', content: description},
+    {property: 'og:type', content: 'product.group'},
+    {property: 'og:site_name', content: 'M-U-PLUG'},
+    ...(image ? [{property: 'og:image', content: image}] : []),
+    {name: 'twitter:card', content: 'summary_large_image'},
+    {name: 'twitter:title', content: title},
+    {name: 'twitter:description', content: description},
+    ...(image ? [{name: 'twitter:image', content: image}] : []),
+  ];
+};
+
+/**
+ * Loader - Fetches collection data with pagination
+ */
+export async function loader({context, params, request}) {
   const {handle} = params;
   const {storefront} = context;
+  
   const paginationVariables = getPaginationVariables(request, {
-    pageBy: 8,
+    pageBy: 24,
   });
 
   if (!handle) {
-    throw redirect('/collections');
+    throw redirect('/collections/all');
   }
 
-  const [{collection}] = await Promise.all([
-    storefront.query(COLLECTION_QUERY, {
-      variables: {handle, ...paginationVariables},
-      // Add other queries here, so that they are loaded in parallel
-    }),
-  ]);
+  const {collection} = await storefront.query(COLLECTION_QUERY, {
+    variables: {
+      handle,
+      ...paginationVariables,
+      country: context.storefront.i18n.country,
+      language: context.storefront.i18n.language,
+    },
+  });
 
   if (!collection) {
     throw new Response(`Collection ${handle} not found`, {
@@ -53,44 +119,88 @@ async function loadCriticalData({context, params, request}) {
     });
   }
 
-  // The API handle might be localized, so redirect to the localized handle
-  redirectIfHandleIsLocalized(request, {handle, data: collection});
-
   return {
     collection,
   };
 }
 
 /**
- * Load data for rendering content below the fold. This data is deferred and will be
- * fetched after the initial page load. If it's unavailable, the page should still 200.
- * Make sure to not throw any errors here, as it will cause the page to 500.
- * @param {Route.LoaderArgs}
+ * Collection Page - Neo-Brutalist Layout
  */
-function loadDeferredData({context}) {
-  return {};
-}
-
 export default function Collection() {
-  /** @type {LoaderReturnData} */
   const {collection} = useLoaderData();
+  const {title, description, products} = collection;
 
   return (
-    <div className="collection">
-      <h1>{collection.title}</h1>
-      <p className="collection-description">{collection.description}</p>
-      <PaginatedResourceSection
-        connection={collection.products}
-        resourcesClassName="products-grid"
-      >
-        {({node: product, index}) => (
-          <ProductItem
-            key={product.id}
-            product={product}
-            loading={index < 8 ? 'eager' : undefined}
-          />
-        )}
-      </PaginatedResourceSection>
+    <div className="min-h-screen bg-[var(--color-bg-primary)]">
+      {/* Breadcrumb */}
+      <div className="border-b-2 border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)]">
+        <div className="max-w-[var(--grid-max-width)] mx-auto px-4 md:px-6 py-4">
+          <nav className="flex items-center gap-2 font-[var(--font-mono)] text-xs uppercase tracking-wider">
+            <Link to="/" className="text-[var(--color-fg-muted)] hover:text-[var(--color-fg-primary)] transition-colors">
+              Home
+            </Link>
+            <span className="text-[var(--color-fg-muted)]">/</span>
+            <span className="text-[var(--color-fg-primary)]">{title}</span>
+          </nav>
+        </div>
+      </div>
+
+      {/* Collection Header */}
+      <header className="border-b-4 border-[var(--color-fg-primary)] bg-[var(--color-bg-secondary)]">
+        <div className="max-w-[var(--grid-max-width)] mx-auto px-4 md:px-6 py-12 md:py-20">
+          <h1 className="font-[var(--font-display)] text-5xl md:text-6xl lg:text-7xl font-bold uppercase tracking-tighter text-[var(--color-fg-primary)] leading-[0.9] mb-6">
+            {title}
+          </h1>
+          
+          {description && (
+            <p className="font-[var(--font-mono)] text-sm md:text-base text-[var(--color-fg-secondary)] max-w-2xl leading-relaxed">
+              {description}
+            </p>
+          )}
+          
+          {/* Product Count */}
+          <div className="mt-6 flex items-center gap-2">
+            <span className="font-[var(--font-mono)] text-xs uppercase tracking-widest text-[var(--color-accent-cyan)] border border-[var(--color-accent-cyan)] px-2 py-1">
+              {products.nodes.length} ITEMS
+            </span>
+            {products.pageInfo?.hasNextPage && (
+              <span className="font-[var(--font-mono)] text-xs uppercase tracking-wider text-[var(--color-fg-muted)]">
+                + MORE
+              </span>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Products Grid */}
+      <section className="py-12 md:py-16">
+        <div className="max-w-[var(--grid-max-width)] mx-auto px-4 md:px-6">
+          {products.nodes.length > 0 ? (
+            <Pagination 
+              connection={products}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[2px] bg-[var(--color-fg-primary)] border-4 border-[var(--color-fg-primary)]"
+            >
+              {({node: product}) => (
+                <div className="bg-[var(--color-bg-secondary)]">
+                  <ProductCard
+                    product={{
+                      ...product,
+                      specs: getSpecsFromTags(product.tags),
+                    }}
+                    variant="standard"
+                    badge={getBadgeFromTags(product.tags)}
+                  />
+                </div>
+              )}
+            </Pagination>
+          ) : (
+            <CollectionEmpty />
+          )}
+        </div>
+      </section>
+
+      {/* Analytics - Collection View */}
       <Analytics.CollectionView
         data={{
           collection: {
@@ -103,36 +213,69 @@ export default function Collection() {
   );
 }
 
-const PRODUCT_ITEM_FRAGMENT = `#graphql
-  fragment MoneyProductItem on MoneyV2 {
-    amount
-    currencyCode
-  }
-  fragment ProductItem on Product {
+/**
+ * CollectionEmpty - Neo-Brutalist Empty State
+ */
+function CollectionEmpty() {
+  return (
+    <div className="border-4 border-[var(--color-fg-primary)] bg-[var(--color-bg-secondary)] p-12 md:p-24 text-center">
+      <h2 className="font-[var(--font-display)] text-4xl md:text-6xl font-bold uppercase tracking-tighter text-[var(--color-fg-primary)] mb-4">
+        VOID
+      </h2>
+      <p className="font-[var(--font-mono)] text-sm uppercase tracking-[0.3em] text-[var(--color-fg-muted)]">
+        // NULL SET
+      </p>
+      <p className="font-[var(--font-mono)] text-xs uppercase tracking-wider text-[var(--color-fg-muted)] mt-6 max-w-md mx-auto">
+        This collection contains no products. Check back later.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * GraphQL Fragments and Query
+ */
+const PRODUCT_CARD_FRAGMENT = `#graphql
+  fragment ProductCardItem on Product {
     id
-    handle
     title
+    handle
+    availableForSale
+    tags
     featuredImage {
       id
-      altText
       url
+      altText
       width
       height
     }
     priceRange {
       minVariantPrice {
-        ...MoneyProductItem
+        amount
+        currencyCode
       }
-      maxVariantPrice {
-        ...MoneyProductItem
+    }
+    compareAtPriceRange {
+      minVariantPrice {
+        amount
+        currencyCode
+      }
+    }
+    variants(first: 1) {
+      nodes {
+        id
+        availableForSale
+        selectedOptions {
+          name
+          value
+        }
       }
     }
   }
 `;
 
-// NOTE: https://shopify.dev/docs/api/storefront/2022-04/objects/collection
 const COLLECTION_QUERY = `#graphql
-  ${PRODUCT_ITEM_FRAGMENT}
+  ${PRODUCT_CARD_FRAGMENT}
   query Collection(
     $handle: String!
     $country: CountryCode
@@ -147,6 +290,10 @@ const COLLECTION_QUERY = `#graphql
       handle
       title
       description
+      image {
+        url
+        altText
+      }
       products(
         first: $first,
         last: $last,
@@ -154,7 +301,7 @@ const COLLECTION_QUERY = `#graphql
         after: $endCursor
       ) {
         nodes {
-          ...ProductItem
+          ...ProductCardItem
         }
         pageInfo {
           hasPreviousPage
@@ -167,6 +314,4 @@ const COLLECTION_QUERY = `#graphql
   }
 `;
 
-/** @typedef {import('./+types/collections.$handle').Route} Route */
-/** @typedef {import('storefrontapi.generated').ProductItemFragment} ProductItemFragment */
 /** @typedef {import('@shopify/remix-oxygen').SerializeFrom<typeof loader>} LoaderReturnData */

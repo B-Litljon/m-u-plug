@@ -1,25 +1,30 @@
 import {Money} from '@shopify/hydrogen';
 
 /**
- * @param {{
- *   price?: MoneyV2;
- *   compareAtPrice?: MoneyV2 | null;
- * }}
+ * ProductPrice - Neo-Brutalist Price Display
+ * 
+ * @param {Object} props
+ * @param {MoneyV2} props.price - Current price
+ * @param {MoneyV2} props.compareAtPrice - Compare at price (for sales)
  */
 export function ProductPrice({price, compareAtPrice}) {
   return (
-    <div className="product-price">
+    <div className="flex items-baseline gap-3">
       {compareAtPrice ? (
-        <div className="product-price-on-sale">
-          {price ? <Money data={price} /> : null}
-          <s>
+        <>
+          <span className="font-[var(--font-mono)] text-2xl md:text-3xl font-bold text-[var(--color-fg-primary)]">
+            {price ? <Money data={price} /> : null}
+          </span>
+          <span className="font-[var(--font-mono)] text-lg text-[var(--color-fg-muted)] line-through">
             <Money data={compareAtPrice} />
-          </s>
-        </div>
+          </span>
+        </>
       ) : price ? (
-        <Money data={price} />
+        <span className="font-[var(--font-mono)] text-2xl md:text-3xl font-bold text-[var(--color-fg-primary)]">
+          <Money data={price} />
+        </span>
       ) : (
-        <span>&nbsp;</span>
+        <span className="font-[var(--font-mono)] text-2xl font-bold text-[var(--color-fg-muted)]">-</span>
       )}
     </div>
   );

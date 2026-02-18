@@ -8,8 +8,10 @@
     "build": "shopify hydrogen build --codegen",
     "dev": "shopify hydrogen dev --codegen",
     "preview": "shopify hydrogen preview --build",
+    "deploy": "shopify hydrogen deploy",
     "lint": "eslint --no-error-on-unmatched-pattern .",
-    "codegen": "shopify hydrogen codegen && react-router typegen"
+    "codegen": "shopify hydrogen codegen && react-router typegen",
+    "clean": "rm -rf dist node_modules .react-router"
   },
   "prettier": "@shopify/prettier-config",
   "dependencies": {

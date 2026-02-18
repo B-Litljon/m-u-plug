@@ -1,69 +1,330 @@
 @import 'tailwindcss';
 
 @theme {
-  /* * THE SUIT: Color Palette 
-   * Trust is built on consistency. We define semantic names (Primary, Contrast)
-   * rather than just "Blue" or "Red" to enforce strict usage.
+  /* * NEO-BRUTALIST COMMAND CENTER 
+   * Dark-mode-first, high-contrast hardware premium aesthetic
    */
-  --color-primary: #1a1a1a;    /* Off-black for authority */
-  --color-contrast: #ffffff;   /* Pure white for clarity */
-  --color-accent: #2c5282;     /* Trustworthy Blue (Navy) */
-  --color-subtle: #f4f4f5;     /* Light gray for backgrounds */
-  --color-border: #e4e4e7;     /* Crisp borders, no muddy grays */
   
-  --color-error: #ef4444;      /* Clear error states */
-  --color-success: #22c55e;    /* Clear success states */
-
-  /* * THE FIT: Typography 
-   * A tight, professional font stack. 
-   */
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-serif: "Playfair Display", serif; /* Use for "Editorial" moments */
-
-  /* * THE DETAILS: Border Radius & Spacing
-   * Sharp corners = Technical/Precise. Rounded = Friendly.
-   * We'll go with slightly rounded (sm) for a modern, approachable pro look.
-   */
-  --radius-sm: 0.2rem;
-  --radius-md: 0.4rem;
-  --radius-lg: 0.6rem;
+  /* Backgrounds: Deep charcoals, void-like depths */
+  --color-bg-primary: #0a0a0a;
+  --color-bg-secondary: #141414;
+  --color-bg-tertiary: #1a1a1a;
+  --color-bg-elevated: #222222;
+  
+  /* Foregrounds: Stark white, surgical precision */
+  --color-fg-primary: #ffffff;
+  --color-fg-secondary: #a3a3a3;
+  --color-fg-muted: #525252;
+  
+  /* Grid Borders: Rigid, architectural */
+  --color-border-primary: #262626;
+  --color-border-accent: #404040;
+  --color-border-highlight: #ffffff;
+  
+  /* Hardware Accents: Industrial tech colors */
+  --color-accent-cyan: #00d4ff;
+  --color-accent-magenta: #ff00ff;
+  --color-accent-lime: #39ff14;
+  --color-accent-amber: #ffaa00;
+  
+  /* State Colors */
+  --color-error: #ff3333;
+  --color-success: #00ff88;
+  --color-warning: #ffcc00;
+  
+  /* Typography: Massive, crisp */
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: "Space Grotesk", "Inter", sans-serif;
+  
+  /* No border radius - Neo-brutalist sharp edges */
+  --radius-none: 0px;
+  
+  /* Grid System Spacing */
+  --grid-gap: 1px;
+  --grid-padding: 24px;
+  --grid-max-width: 1440px;
+  
+  /* Z-index Scale */
+  --z-base: 0;
+  --z-above: 10;
+  --z-header: 100;
+  --z-modal: 1000;
+  --z-toast: 9999;
+  --z-marquee: 50;
+  
+  /* Animation durations */
+  --duration-marquee: 30s;
+  --duration-marquee-slow: 45s;
+  --duration-marquee-fast: 20s;
 }
 
-/* * BASE STYLES
- * Resetting defaults to ensure the "Suit" fits perfectly 
- * regardless of the browser.
+/* * BASE RESET
+ * Surgical reset for brutalist precision
  */
 @layer base {
-  body {
-    background-color: var(--color-contrast);
-    color: var(--color-primary);
-    font-family: var(--font-sans);
-    -webkit-font-smoothing: antialiased; /* Crisp text on Mac */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
   }
-
-  /* Typography Hierarchy - Visualizing Authority */
-  h1, h2, h3, h4, h5, h6 {
+  
+  html {
+    background-color: var(--color-bg-primary);
+    color: var(--color-fg-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    background-color: var(--color-bg-primary);
+    color: var(--color-fg-primary);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+  
+  /* Massive Typography Hierarchy */
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(3rem, 8vw, 8rem);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+    text-transform: uppercase;
+  }
+  
+  h2 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 4rem);
     font-weight: 600;
-    letter-spacing: -0.02em; /* Tight tracking feels more premium */
+    letter-spacing: -0.02em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+  
+  h3 {
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 3vw, 2.5rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
     line-height: 1.1;
   }
-
-  h1 { font-size: 2.5rem; }
-  h2 { font-size: 2rem; }
-  h3 { font-size: 1.75rem; }
   
-  /* Inputs - The "Handshake" of the UI */
-  input, select, textarea {
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    padding: 0.75rem 1rem;
+  h4, h5, h6 {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+  
+  p {
+    color: var(--color-fg-secondary);
     font-size: 1rem;
-    transition: all 0.2s ease;
+    line-height: 1.6;
   }
-
-  input:focus {
+  
+  /* Links: Stark, underlined on hover */
+  a {
+    color: var(--color-fg-primary);
+    text-decoration: none;
+    transition: opacity 150ms ease;
+  }
+  
+  a:hover {
+    opacity: 0.7;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  
+  /* Inputs: Sharp, bordered, industrial */
+  input,
+  select,
+  textarea,
+  button {
+    font-family: var(--font-sans);
+    border-radius: var(--radius-none);
+  }
+  
+  input,
+  select,
+  textarea {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-primary);
+    color: var(--color-fg-primary);
+    padding: 1rem 1.25rem;
+    font-size: 1rem;
+    width: 100%;
+    transition: border-color 200ms ease;
+  }
+  
+  input:focus,
+  select:focus,
+  textarea:focus {
     outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 1px var(--color-primary);
+    border-color: var(--color-border-highlight);
   }
+  
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-fg-muted);
+  }
+  
+  /* Selection: High contrast cyan */
+  ::selection {
+    background-color: var(--color-accent-cyan);
+    color: var(--color-bg-primary);
+  }
+}
+
+/* * UTILITY LAYER
+ * Atomic grid and layout utilities
+ */
+@layer utilities {
+  /* Rigid Grid Gap */
+  .grid-brutal {
+    display: grid;
+    gap: var(--grid-gap);
+    background-color: var(--color-border-primary);
+  }
+  
+  /* Grid Cell Background */
+  .cell {
+    background-color: var(--color-bg-secondary);
+  }
+  
+  /* Monospace Text Utility */
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+  
+  /* Display Font */
+  .font-display {
+    font-family: var(--font-display);
+  }
+  
+  /* Border Accent */
+  .border-grid {
+    border: 1px solid var(--color-border-primary);
+  }
+  
+  /* Hardware Photo Container */
+  .hardware-frame {
+    background: linear-gradient(145deg, var(--color-bg-tertiary), var(--color-bg-secondary));
+    border: 1px solid var(--color-border-accent);
+  }
+}
+
+/* * ANIMATION LAYER
+ * Keyframe animations for Neo-Brutalist effects
+ */
+@layer animations {
+  /* Marquee - Infinite Scroll */
+  @keyframes marquee {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+  
+  @keyframes marquee-slow {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+  
+  @keyframes marquee-fast {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+  
+  /* Pulse Animation for Error States */
+  @keyframes pulse-error {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+  
+  /* Scanline Effect */
+  @keyframes scanline {
+    0% {
+      transform: translateY(-100%);
+    }
+    100% {
+      transform: translateY(100%);
+    }
+  }
+  
+  /* Glitch Effect */
+  @keyframes glitch {
+    0% {
+      transform: translate(0);
+    }
+    20% {
+      transform: translate(-2px, 2px);
+    }
+    40% {
+      transform: translate(-2px, -2px);
+    }
+    60% {
+      transform: translate(2px, 2px);
+    }
+    80% {
+      transform: translate(2px, -2px);
+    }
+    100% {
+      transform: translate(0);
+    }
+  }
+}
+
+/* * MARQUEE ANIMATION CLASSES
+ */
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee-slow {
+  animation: marquee-slow 45s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee-fast {
+  animation: marquee-fast 20s linear infinite;
+  will-change: transform;
+}
+
+/* Pause animation on hover */
+.animate-marquee:hover,
+.animate-marquee-slow:hover,
+.animate-marquee-fast:hover {
+  animation-play-state: paused;
+}
+
+/* Pulse animation for error indicators */
+.animate-pulse-error {
+  animation: pulse-error 2s ease-in-out infinite;
+}
+
+/* Glitch effect for special states */
+.animate-glitch {
+  animation: glitch 0.3s ease-in-out infinite;
 }

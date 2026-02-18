@@ -1,156 +1,321 @@
-import {useLoaderData} from 'react-router';
+import {useLoaderData, Link, Form} from 'react-router';
 import {getPaginationVariables, Analytics} from '@shopify/hydrogen';
-import {SearchForm} from '~/components/SearchForm';
-import {SearchResults} from '~/components/SearchResults';
-import {getEmptyPredictiveSearchResult} from '~/lib/search';
+import {Pagination} from '~/components/Pagination';
+import {ProductCard} from '~/components/ProductCard';
+import {useRef, useEffect} from 'react';
 
 /**
- * @type {Route.MetaFunction}
+ * Helper: Extract tech specs from product tags
  */
-export const meta = () => {
-  return [{title: `Hydrogen | Search`}];
-};
-
-/**
- * @param {Route.LoaderArgs}
- */
-export async function loader({request, context}) {
-  const url = new URL(request.url);
-  const isPredictive = url.searchParams.has('predictive');
-  const searchPromise = isPredictive
-    ? predictiveSearch({request, context})
-    : regularSearch({request, context});
-
-  searchPromise.catch((error) => {
-    console.error(error);
-    return {term: '', result: null, error: error.message};
+function getSpecsFromTags(tags) {
+  if (!tags || tags.length === 0) return null;
+  
+  const specs = {};
+  const specKeywords = ['screen', 'cpu', 'ram', 'storage', 'battery', 'display'];
+  
+  tags.forEach(tag => {
+    if (tag.includes(':')) {
+      const [key, value] = tag.split(':').map(s => s.trim());
+      if (key && value) {
+        specs[key.toUpperCase()] = value;
+      }
+    } else {
+      const lowerTag = tag.toLowerCase();
+      specKeywords.forEach(keyword => {
+        if (lowerTag.includes(keyword)) {
+          const key = keyword.toUpperCase();
+          const value = tag.replace(new RegExp(keyword, 'i'), '').trim();
+          if (value) {
+            specs[key] = value;
+          }
+        }
+      });
+    }
   });
-
-  return await searchPromise;
+  
+  return Object.keys(specs).length > 0 ? specs : null;
 }
 
 /**
- * Renders the /search route
+ * Helper: Extract badge from tags
+ */
+function getBadgeFromTags(tags) {
+  if (!tags || tags.length === 0) return null;
+  
+  const badgeMap = {
+    'new': 'NEW',
+    'restock': 'RESTOCK',
+    'sale': 'SALE',
+    'sold out': 'SOLD OUT',
+    'limited': 'LIMITED',
+  };
+  
+  const tag = tags.find(t => badgeMap[t.toLowerCase()]);
+  return tag ? badgeMap[tag.toLowerCase()] : null;
+}
+
+/**
+ * Meta tags for search page
+ */
+export const meta = ({data}) => {
+  const term = data?.term || '';
+  return [
+    {title: term ? `Search: ${term} | M-U-PLUG` : 'Search | M-U-PLUG'},
+  ];
+};
+
+/**
+ * Loader - Handles search queries
+ */
+export async function loader({request, context}) {
+  const {storefront} = context;
+  const url = new URL(request.url);
+  const term = url.searchParams.get('q') || '';
+  
+  // Don't search if no term provided
+  if (!term.trim()) {
+    return {term: '', result: null, products: {nodes: [], pageInfo: {}}};
+  }
+
+  const variables = getPaginationVariables(request, {pageBy: 24});
+
+  const {products} = await storefront.query(SEARCH_QUERY, {
+    variables: {
+      ...variables,
+      term,
+      country: context.storefront.i18n.country,
+      language: context.storefront.i18n.language,
+    },
+  });
+
+  return {
+    term,
+    products: products || {nodes: [], pageInfo: {}},
+    total: products?.nodes?.length || 0,
+  };
+}
+
+/**
+ * Search Page - Neo-Brutalist Layout
  */
 export default function SearchPage() {
-  /** @type {LoaderReturnData} */
-  const {type, term, result, error} = useLoaderData();
-  if (type === 'predictive') return null;
+  const {term, products, total} = useLoaderData();
+  const inputRef = useRef(null);
+
+  // Focus input on mount if no search term
+  useEffect(() => {
+    if (!term && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [term]);
 
   return (
-    <div className="search">
-      <h1>Search</h1>
-      <SearchForm>
-        {({inputRef}) => (
-          <>
+    <div className="min-h-screen bg-[var(--color-bg-primary)]">
+      {/* Breadcrumb */}
+      <div className="border-b-2 border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)]">
+        <div className="max-w-[var(--grid-max-width)] mx-auto px-4 md:px-6 py-4">
+          <nav className="flex items-center gap-2 font-[var(--font-mono)] text-xs uppercase tracking-wider">
+            <Link to="/" className="text-[var(--color-fg-muted)] hover:text-[var(--color-fg-primary)] transition-colors">
+              Home
+            </Link>
+            <span className="text-[var(--color-fg-muted)]">/</span>
+            <span className="text-[var(--color-fg-primary)]">Search</span>
+          </nav>
+        </div>
+      </div>
+
+      {/* Search Header with Massive Input */}
+      <header className="border-b-4 border-[var(--color-fg-primary)] bg-[var(--color-bg-secondary)]">
+        <div className="max-w-[var(--grid-max-width)] mx-auto px-4 md:px-6 py-12 md:py-16">
+          <h1 className="font-[var(--font-display)] text-4xl md:text-5xl lg:text-6xl font-bold uppercase tracking-tighter text-[var(--color-fg-primary)] mb-8">
+            SEARCH
+          </h1>
+          
+          {/* Massive Search Input */}
+          <Form method="get" action="/search" className="relative">
             <input
+              ref={inputRef}
               defaultValue={term}
               name="q"
-              placeholder="Search…"
-              ref={inputRef}
+              placeholder="ENTER QUERY..."
               type="search"
+              autoComplete="off"
+              className="
+                w-full 
+                bg-[var(--color-bg-primary)] 
+                border-b-4 border-[var(--color-fg-primary)]
+                text-2xl md:text-4xl 
+                font-[var(--font-display)] font-bold uppercase
+                text-[var(--color-fg-primary)]
+                placeholder:text-[var(--color-fg-muted)]
+                py-4 
+                pr-32
+                focus:outline-none 
+                focus:bg-[var(--color-accent-lime)]/10
+                transition-colors
+              "
             />
-            &nbsp;
-            <button type="submit">Search</button>
-          </>
-        )}
-      </SearchForm>
-      {error && <p style={{color: 'red'}}>{error}</p>}
-      {!term || !result?.total ? (
-        <SearchResults.Empty />
-      ) : (
-        <SearchResults result={result} term={term}>
-          {({articles, pages, products, term}) => (
-            <div>
-              <SearchResults.Products products={products} term={term} />
-              <SearchResults.Pages pages={pages} term={term} />
-              <SearchResults.Articles articles={articles} term={term} />
+            <button
+              type="submit"
+              className="
+                absolute 
+                right-0 
+                top-1/2 
+                -translate-y-1/2
+                bg-[var(--color-fg-primary)] 
+                text-[var(--color-bg-primary)] 
+                border-2 border-[var(--color-fg-primary)]
+                px-6 md:px-8 
+                py-3
+                font-[var(--font-mono)] text-sm font-bold uppercase tracking-widest
+                hover:bg-[var(--color-accent-lime)] hover:border-[var(--color-accent-lime)] hover:text-[var(--color-bg-primary)]
+                transition-colors
+              "
+            >
+              SEARCH
+            </button>
+          </Form>
+
+          {/* Search Tips */}
+          <p className="font-[var(--font-mono)] text-xs text-[var(--color-fg-muted)] mt-4 uppercase tracking-wider">
+            Try: "Miyoo", "Anbernic", "Retro Handheld", "OLED"
+          </p>
+        </div>
+      </header>
+
+      {/* Search Results */}
+      <section className="py-12 md:py-16">
+        <div className="max-w-[var(--grid-max-width)] mx-auto px-4 md:px-6">
+          
+          {/* Results Header */}
+          {term && (
+            <div className="mb-8 border-b-2 border-[var(--color-border-primary)] pb-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <span className="font-[var(--font-mono)] text-xs uppercase tracking-widest text-[var(--color-fg-muted)]">
+                    Results for
+                  </span>
+                  <h2 className="font-[var(--font-display)] text-2xl md:text-3xl font-bold uppercase tracking-tight text-[var(--color-fg-primary)] mt-1">
+                    &ldquo;{term}&rdquo;
+                  </h2>
+                </div>
+                {total > 0 && (
+                  <span className="font-[var(--font-mono)] text-xs uppercase tracking-widest text-[var(--color-accent-cyan)] border border-[var(--color-accent-cyan)] px-3 py-1">
+                    {total} ITEMS FOUND
+                  </span>
+                )}
+              </div>
             </div>
           )}
-        </SearchResults>
-      )}
-      <Analytics.SearchView data={{searchTerm: term, searchResults: result}} />
+
+          {/* Products Grid */}
+          {term ? (
+            products?.nodes?.length > 0 ? (
+              <Pagination 
+                connection={products}
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[2px] bg-[var(--color-fg-primary)] border-4 border-[var(--color-fg-primary)]"
+              >
+                {({node: product}) => (
+                  <div className="bg-[var(--color-bg-secondary)]">
+                    <ProductCard
+                      product={{
+                        ...product,
+                        specs: getSpecsFromTags(product.tags),
+                      }}
+                      variant="standard"
+                      badge={getBadgeFromTags(product.tags)}
+                    />
+                  </div>
+                )}
+              </Pagination>
+            ) : (
+              <SearchEmpty term={term} />
+            )
+          ) : (
+            <SearchPrompt />
+          )}
+        </div>
+      </section>
+
+      <Analytics.SearchView 
+        data={{
+          searchTerm: term, 
+          searchResults: products
+        }} 
+      />
     </div>
   );
 }
 
 /**
- * Regular search query and fragments
- * (adjust as needed)
+ * SearchEmpty - Neo-Brutalist No Results State
  */
-const SEARCH_PRODUCT_FRAGMENT = `#graphql
-  fragment SearchProduct on Product {
-    __typename
-    handle
-    id
-    publishedAt
-    title
-    trackingParameters
-    vendor
-    selectedOrFirstAvailableVariant(
-      selectedOptions: []
-      ignoreUnknownOptions: true
-      caseInsensitiveMatch: true
-    ) {
-      id
-      image {
-        url
-        altText
-        width
-        height
-      }
-      price {
-        amount
-        currencyCode
-      }
-      compareAtPrice {
-        amount
-        currencyCode
-      }
-      selectedOptions {
-        name
-        value
-      }
-      product {
-        handle
-        title
-      }
-    }
-  }
-`;
+function SearchEmpty({term}) {
+  return (
+    <div className="border-4 border-[var(--color-fg-primary)] bg-[var(--color-bg-secondary)] p-12 md:p-24 text-center">
+      <div className="mb-6">
+        <svg 
+          className="w-16 h-16 mx-auto text-[var(--color-fg-muted)]" 
+          fill="none" 
+          viewBox="0 0 24 24" 
+          stroke="currentColor"
+        >
+          <path 
+            strokeLinecap="square" 
+            strokeLinejoin="miter" 
+            strokeWidth={1.5} 
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" 
+          />
+        </svg>
+      </div>
+      <h2 className="font-[var(--font-display)] text-3xl md:text-5xl font-bold uppercase tracking-tighter text-[var(--color-fg-primary)] mb-2">
+        NO SIGNAL
+      </h2>
+      <p className="font-[var(--font-mono)] text-sm uppercase tracking-[0.3em] text-[var(--color-fg-muted)] mb-6">
+        // TRY AGAIN
+      </p>
+      <p className="font-[var(--font-mono)] text-xs uppercase tracking-wider text-[var(--color-fg-muted)] max-w-md mx-auto">
+        No products found matching &ldquo;{term}&rdquo;. Try a different search term or browse our collections.
+      </p>
+      <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+        <Link
+          to="/collections/all"
+          className="inline-block bg-[var(--color-fg-primary)] text-[var(--color-bg-primary)] border-2 border-[var(--color-fg-primary)] px-8 py-3 font-[var(--font-mono)] text-xs font-bold uppercase tracking-widest hover:bg-[var(--color-accent-lime)] hover:border-[var(--color-accent-lime)] transition-colors"
+        >
+          BROWSE ALL
+        </Link>
+        <Link
+          to="/"
+          className="inline-block bg-transparent text-[var(--color-fg-primary)] border-2 border-[var(--color-fg-primary)] px-8 py-3 font-[var(--font-mono)] text-xs font-bold uppercase tracking-widest hover:bg-[var(--color-fg-primary)] hover:text-[var(--color-bg-primary)] transition-colors"
+        >
+          GO HOME
+        </Link>
+      </div>
+    </div>
+  );
+}
 
-const SEARCH_PAGE_FRAGMENT = `#graphql
-  fragment SearchPage on Page {
-     __typename
-     handle
-    id
-    title
-    trackingParameters
-  }
-`;
+/**
+ * SearchPrompt - Initial state when no search term
+ */
+function SearchPrompt() {
+  return (
+    <div className="border-4 border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-12 md:p-24 text-center">
+      <h2 className="font-[var(--font-display)] text-2xl md:text-4xl font-bold uppercase tracking-tighter text-[var(--color-fg-primary)] mb-4">
+        READY TO SEARCH
+      </h2>
+      <p className="font-[var(--font-mono)] text-sm uppercase tracking-wider text-[var(--color-fg-muted)] max-w-md mx-auto">
+        Enter a search term above to find products in our catalog.
+      </p>
+    </div>
+  );
+}
 
-const SEARCH_ARTICLE_FRAGMENT = `#graphql
-  fragment SearchArticle on Article {
-    __typename
-    handle
-    id
-    title
-    trackingParameters
-  }
-`;
-
-const PAGE_INFO_FRAGMENT = `#graphql
-  fragment PageInfoFragment on PageInfo {
-    hasNextPage
-    hasPreviousPage
-    startCursor
-    endCursor
-  }
-`;
-
-// NOTE: https://shopify.dev/docs/api/storefront/latest/queries/search
-export const SEARCH_QUERY = `#graphql
-  query RegularSearch(
+/**
+ * GraphQL Search Query
+ */
+const SEARCH_QUERY = `#graphql
+  query SearchProducts(
     $country: CountryCode
     $endCursor: String
     $first: Int
@@ -159,28 +324,6 @@ export const SEARCH_QUERY = `#graphql
     $term: String!
     $startCursor: String
   ) @inContext(country: $country, language: $language) {
-    articles: search(
-      query: $term,
-      types: [ARTICLE],
-      first: $first,
-    ) {
-      nodes {
-        ...on Article {
-          ...SearchArticle
-        }
-      }
-    }
-    pages: search(
-      query: $term,
-      types: [PAGE],
-      first: $first,
-    ) {
-      nodes {
-        ...on Page {
-          ...SearchPage
-        }
-      }
-    }
     products: search(
       after: $endCursor,
       before: $startCursor,
@@ -193,231 +336,50 @@ export const SEARCH_QUERY = `#graphql
     ) {
       nodes {
         ...on Product {
-          ...SearchProduct
+          id
+          title
+          handle
+          availableForSale
+          tags
+          featuredImage {
+            id
+            url
+            altText
+            width
+            height
+          }
+          priceRange {
+            minVariantPrice {
+              amount
+              currencyCode
+            }
+          }
+          compareAtPriceRange {
+            minVariantPrice {
+              amount
+              currencyCode
+            }
+          }
+          variants(first: 1) {
+            nodes {
+              id
+              availableForSale
+              selectedOptions {
+                name
+                value
+              }
+            }
+          }
         }
       }
       pageInfo {
-        ...PageInfoFragment
-      }
-    }
-  }
-  ${SEARCH_PRODUCT_FRAGMENT}
-  ${SEARCH_PAGE_FRAGMENT}
-  ${SEARCH_ARTICLE_FRAGMENT}
-  ${PAGE_INFO_FRAGMENT}
-`;
-
-/**
- * Regular search fetcher
- * @param {Pick<
- *   Route.LoaderArgs,
- *   'request' | 'context'
- * >}
- * @return {Promise<RegularSearchReturn>}
- */
-async function regularSearch({request, context}) {
-  const {storefront} = context;
-  const url = new URL(request.url);
-  const variables = getPaginationVariables(request, {pageBy: 8});
-  const term = String(url.searchParams.get('q') || '');
-
-  // Search articles, pages, and products for the `q` term
-  const {errors, ...items} = await storefront.query(SEARCH_QUERY, {
-    variables: {...variables, term},
-  });
-
-  if (!items) {
-    throw new Error('No search data returned from Shopify API');
-  }
-
-  const total = Object.values(items).reduce(
-    (acc, {nodes}) => acc + nodes.length,
-    0,
-  );
-
-  const error = errors
-    ? errors.map(({message}) => message).join(', ')
-    : undefined;
-
-  return {type: 'regular', term, error, result: {total, items}};
-}
-
-/**
- * Predictive search query and fragments
- * (adjust as needed)
- */
-const PREDICTIVE_SEARCH_ARTICLE_FRAGMENT = `#graphql
-  fragment PredictiveArticle on Article {
-    __typename
-    id
-    title
-    handle
-    blog {
-      handle
-    }
-    image {
-      url
-      altText
-      width
-      height
-    }
-    trackingParameters
-  }
-`;
-
-const PREDICTIVE_SEARCH_COLLECTION_FRAGMENT = `#graphql
-  fragment PredictiveCollection on Collection {
-    __typename
-    id
-    title
-    handle
-    image {
-      url
-      altText
-      width
-      height
-    }
-    trackingParameters
-  }
-`;
-
-const PREDICTIVE_SEARCH_PAGE_FRAGMENT = `#graphql
-  fragment PredictivePage on Page {
-    __typename
-    id
-    title
-    handle
-    trackingParameters
-  }
-`;
-
-const PREDICTIVE_SEARCH_PRODUCT_FRAGMENT = `#graphql
-  fragment PredictiveProduct on Product {
-    __typename
-    id
-    title
-    handle
-    trackingParameters
-    selectedOrFirstAvailableVariant(
-      selectedOptions: []
-      ignoreUnknownOptions: true
-      caseInsensitiveMatch: true
-    ) {
-      id
-      image {
-        url
-        altText
-        width
-        height
-      }
-      price {
-        amount
-        currencyCode
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
       }
     }
   }
 `;
 
-const PREDICTIVE_SEARCH_QUERY_FRAGMENT = `#graphql
-  fragment PredictiveQuery on SearchQuerySuggestion {
-    __typename
-    text
-    styledText
-    trackingParameters
-  }
-`;
-
-// NOTE: https://shopify.dev/docs/api/storefront/latest/queries/predictiveSearch
-const PREDICTIVE_SEARCH_QUERY = `#graphql
-  query PredictiveSearch(
-    $country: CountryCode
-    $language: LanguageCode
-    $limit: Int!
-    $limitScope: PredictiveSearchLimitScope!
-    $term: String!
-    $types: [PredictiveSearchType!]
-  ) @inContext(country: $country, language: $language) {
-    predictiveSearch(
-      limit: $limit,
-      limitScope: $limitScope,
-      query: $term,
-      types: $types,
-    ) {
-      articles {
-        ...PredictiveArticle
-      }
-      collections {
-        ...PredictiveCollection
-      }
-      pages {
-        ...PredictivePage
-      }
-      products {
-        ...PredictiveProduct
-      }
-      queries {
-        ...PredictiveQuery
-      }
-    }
-  }
-  ${PREDICTIVE_SEARCH_ARTICLE_FRAGMENT}
-  ${PREDICTIVE_SEARCH_COLLECTION_FRAGMENT}
-  ${PREDICTIVE_SEARCH_PAGE_FRAGMENT}
-  ${PREDICTIVE_SEARCH_PRODUCT_FRAGMENT}
-  ${PREDICTIVE_SEARCH_QUERY_FRAGMENT}
-`;
-
-/**
- * Predictive search fetcher
- * @param {Pick<
- *   Route.ActionArgs,
- *   'request' | 'context'
- * >}
- * @return {Promise<PredictiveSearchReturn>}
- */
-async function predictiveSearch({request, context}) {
-  const {storefront} = context;
-  const url = new URL(request.url);
-  const term = String(url.searchParams.get('q') || '').trim();
-  const limit = Number(url.searchParams.get('limit') || 10);
-  const type = 'predictive';
-
-  if (!term) return {type, term, result: getEmptyPredictiveSearchResult()};
-
-  // Predictively search articles, collections, pages, products, and queries (suggestions)
-  const {predictiveSearch: items, errors} = await storefront.query(
-    PREDICTIVE_SEARCH_QUERY,
-    {
-      variables: {
-        // customize search options as needed
-        limit,
-        limitScope: 'EACH',
-        term,
-      },
-    },
-  );
-
-  if (errors) {
-    throw new Error(
-      `Shopify API errors: ${errors.map(({message}) => message).join(', ')}`,
-    );
-  }
-
-  if (!items) {
-    throw new Error('No predictive search data returned from Shopify API');
-  }
-
-  const total = Object.values(items).reduce(
-    (acc, item) => acc + item.length,
-    0,
-  );
-
-  return {type, term, result: {items, total}};
-}
-
-/** @typedef {import('./+types/search').Route} Route */
-/** @typedef {import('~/lib/search').RegularSearchReturn} RegularSearchReturn */
-/** @typedef {import('~/lib/search').PredictiveSearchReturn} PredictiveSearchReturn */
-/** @typedef {import('storefrontapi.generated').RegularSearchQuery} RegularSearchQuery */
-/** @typedef {import('storefrontapi.generated').PredictiveSearchQuery} PredictiveSearchQuery */
 /** @typedef {import('@shopify/remix-oxygen').SerializeFrom<typeof loader>} LoaderReturnData */
